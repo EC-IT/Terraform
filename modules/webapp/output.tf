@@ -1,7 +1,11 @@
 output "webapp_url" {
-    value = azurerm_app_service.appservice.default_site_hostname
+    value = azurerm_windows_web_app.webapplication.default_hostname
+}
+
+output "webapp_id" {
+    value = azurerm_windows_web_app.webapplication.id
 }
 
 output "webapp_ips" {
-    value = azurerm_app_service.appservice.outbound_ip_addresses
+    value = azurerm_windows_web_app.webapplication.outbound_ip_addresses
 }

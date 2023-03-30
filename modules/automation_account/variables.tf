@@ -36,13 +36,3 @@ variable "runbooks" {
         month_days = list(string)
     }))
 }
-
-variable "enable_update_management" {
-    type = bool
-    default = false
-}
-
-variable "create_job_schedule"{
-    type = bool
-    default = true
-}

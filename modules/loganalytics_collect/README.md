@@ -1,0 +1,31 @@
+## Example
+
+```terraform
+locals {
+    performance_counters = [
+        { name ="Memory", counter_name = "Available Mbytes", interval_seconds = 300 },
+        { name ="System", counter_name = "Processor Queue Length", interval_seconds = 300 },
+        { name ="LogicalDisk", counter_name = "% Free Space", interval_seconds = 300 },
+    ]
+    windows_events = [
+        {
+            event_log_name = "Application",
+            event_types = ["error","warning"]
+        },
+        {
+            event_log_name = "System",
+            event_types = ["error","warning"]
+        },
+    ]
+}
+
+
+module "loganalytics_collect" {
+    source            = "../modules/loganalytics_collect"
+    performance_counters = local.performance_counters
+    windows_events    = local.windows_events
+    rg_name           = data.azurerm_resource_group.itnperg.name
+    workspace_name    = azurerm_log_analytics_workspace.LogAnalyticsWorkspaceNPE.name
+}
+
+```

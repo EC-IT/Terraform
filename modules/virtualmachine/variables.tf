@@ -83,19 +83,19 @@ variable "vm_size" {
   }
 }
 
-variable "tag_ec_application" {
+variable "tag_application" {
   type = string
   validation {
-    condition     = length(var.tag_ec_application) > 0
-    error_message = "Tag EC_APPLICATION must be set."
+    condition     = length(var.tag_application) > 0
+    error_message = "Tag APPLICATION must be set."
   }
 }
 
-variable "tag_ec_environment" {
+variable "tag_environment" {
   type = string
   validation {
-    condition     = length(var.tag_ec_environment) > 2 && length(var.tag_ec_environment) < 12
-    error_message = "Tag EC_ENVIRONMENT must be \"DEV\", \"PPD\" or \"PROD\" ."
+    condition     = length(var.tag_environment) > 2 && length(var.tag_environment) < 12
+    error_message = "Tag ENVIRONMENT must be \"DEV\", \"PPD\" or \"PROD\" ."
   }
 }
 
@@ -142,29 +142,4 @@ variable "keyversion" {
 variable "subscription_id" {
   type    = string
   default = ""
-}
-
-variable "vm_diag_enable" {
-  type    = bool
-  default = false
-}
-
-variable "vm_diag_sa" {
-  type    = string
-  default = ""
-}
-
-variable "vm_diag_sa_rg" {
-  type    = string
-  default = ""
-}
-
-variable "loganalytics_workspace" {
-  type    = string
-  default = "ECLogAnalyticsWorkspace"
-}
-
-variable "loganalytics_workspace_rg" {
-  type    = string
-  default = "ec_prod_core"
 }

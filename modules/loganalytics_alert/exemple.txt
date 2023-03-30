@@ -1,0 +1,105 @@
+locals {
+    alerts = [
+        {
+            name = "checkCPU_95percent"
+            email_subject = "alerte CPU"
+            description = "Aletre CPU supérieur à 95%"
+            query = "Perf | where CounterName == \"% Processor Time\" and CounterValue > 80 and ObjectName == \"Processor\" and InstanceName == \"_Total\" and TimeGenerated > ago(30m) | summarize avg(CounterValue) by Computer | where avg_CounterValue > 95"
+            severity = 2
+            frequency = 10
+            time_window = 30
+            threshold = 2
+            action_group = "AdminGroup"
+        },
+        {
+            name = "checkDisk_5percent"
+            email_subject = "alerte disque"
+            description = "Alerte si une VM à moins de 5% d'espace disque libre"
+            query = "Perf | where ObjectName == \"LogicalDisk\" and TimeGenerated > ago(30m) and CounterName == \"% Free Space\" and InstanceName != \"_Total\" and CounterValue < 5 | distinct Computer"
+            severity = 2, frequency = 10, time_window = 30, threshold = 2
+            action_group = "AdminGroup"
+        },
+        {
+            name = "checkMemory_1G"
+            email_subject = "alerte RAM"
+            description = "Alerte si une VM à moins de 1Go de mémoire libre"
+            query = "Perf | where CounterName == \"Available Mbytes\"  and TimeGenerated > ago(30m) and CounterValue < 1000"
+            severity = 2, frequency = 10, time_window = 30, threshold = 2
+            action_group = "AdminGroup"
+        },
+        {
+            name = "check_NSG_blocked"
+            email_subject = "Trafic bloqué par un NSG"
+            description = "Trafic entrant bloqué par un NSG"
+            query = "AzureNetworkAnalytics_CL | where NSGRule_s contains \"all_inbound_deny\" or NSGRule_s contains \"all_outbound_deny\" | distinct NSGList_s, SrcPublicIPs_s, SrcIP_s, DestIP_s, DestPublicIPs_s, DestPort_d"
+            severity = 2, frequency = 10, time_window = 30, threshold = 1
+            action_group = "AdminGroup"
+        },
+        {
+            name = "EventWindowsError"
+            email_subject = "EventWindowsError"
+            description = "Evenement de type erreur dans les journaux d'événements Windows "
+            query = "Event | where EventLevel == 1 and Source !contains \"DistributedCOM\" and Source !contains \"COMRuntime\" and EventCategory != 6 and EventCategory != 0 and EventCategory != 100  and EventID != 1002  and EventID != 18210 and EventID != 490 and EventID != 489 and EventID != 455"
+            severity = 2, frequency = 10, time_window = 30, threshold = 1
+            action_group = "AdminGroup"
+        },
+        {
+            name = "checkBackup"
+            email_subject = "checkBackup"
+            description = "Sauvegarde Azure en erreur"
+            query = "AzureDiagnostics | where Category == \"AzureBackupReport\" and JobOperation_s == \"Backup\" and JobFailureCode_s != \"Success\" | distinct BackupItemUniqueId_s "
+            severity = 3, frequency = 10, time_window = 10, threshold = 0
+            action_group = "AdminGroup"
+        },
+        {
+            name = "SystemShutdownUnexpected"
+            email_subject = "SystemShutdownUnexpected"
+            description = "Arret VM inattendu"
+            query = "Event | where EventID == 6008 and TimeGenerated > ago(30m) | distinct  Computer, RenderedDescription"
+            severity = 1, frequency = 15, time_window = 15, threshold = 0
+            action_group = "AdminGroup"
+        },
+        {
+            name = "checkSQLpool"
+            email_subject = "checkSQLpool"
+            description = "Surcharge pool SQL"
+            query = "AzureMetrics | where (MetricName == \"cpu_percent\" or MetricName == \"physical_data_read_percent\" or MetricName == \"dtu_consumption_percent\" or MetricName == \"log_write_percent\" or MetricName == \"storage_percent\" or MetricName == \"workers_percent\") and Average > 90 and TimeGenerated > ago(30m)  and TimeGenerated > startofday(TimeGenerated)+7h  and TimeGenerated < startofday(TimeGenerated)+19h"
+            severity = 3, frequency = 15, time_window = 15, threshold = 0
+            action_group = "AdminGroup"
+        },
+        {
+            name = "ProcessStopUnexpected"
+            email_subject = "ProcessStopUnexpected"
+            description = "Arret process inattendu"
+            query = "Event | where (EventID == 7031 or EventID == 7034 or EventID == 41) | where  TimeGenerated > ago(30m)"
+            severity = 2, frequency = 5, time_window = 5, threshold = 0
+            action_group = "AdminGroup"
+        },
+        {
+            name = "ComputersMissingSecurityUpdates"
+            email_subject = "ComputersMissingSecurityUpdates"
+            description = "VM non mise a jour"
+            query = "Update | where UpdateState == 'Needed' and Optional == false and Classification == 'Security Updates' and Approved != false and PublishedDate < ago(30d)  | summarize AggregatedValue = count() by Computer"
+            severity = 3, frequency = 60, time_window = 60, threshold = 0
+            action_group = "AdminGroup"
+        },
+    ]
+    action_group = [
+        {
+            name = "AdminGroup"
+            email_address = "admin@company.com"
+            email_name = "AlertEmailEquipeInfra"
+        }
+    ]
+}
+
+module "loganalytics_alert" {
+    source            = "../modules/loganalytics_alert"
+    alerts            = local.alerts
+    action_group      = local.action_group
+    location          = data.azurerm_resource_group.itnperg.location
+    rg_name           = data.azurerm_resource_group.itnperg.name
+    insight_id        = azurerm_log_analytics_workspace.LogAnalyticsWorkspaceNPE.id
+
+    aztags            = local.aztags_it_preprod
+}

@@ -11,7 +11,18 @@ resource "azurerm_storage_account" "sa" {
   account_kind             = var.sa_account_kind
 
   tags = var.aztags
-
+  /*
+  tags = {
+    EC_APPLICATION = var.tag_ec_application
+    EC_ENVIRONMENT = var.tag_ec_environment
+  }
+*/
+  /*
+  network_rules {
+    default_action             = "Deny"
+    ip_rules                   = "${concat(var.ip_rules, [chomp(data.http.deployip.body)])}"
+    bypass = ["AzureServices"]
+  }*/
 }
 
 resource "azurerm_storage_account_network_rules" "sanetworkrules" {

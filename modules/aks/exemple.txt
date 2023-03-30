@@ -1,0 +1,47 @@
+locals {
+  aks = [
+    {
+      name              = "aks01"
+      rg                = "poc-rg"
+      vnet              = "VNet-Glb-NPE"
+      subnet            = "SubNet-AKS001-NPE"
+      subnet_rg         = "IT-NPE-rg"
+      agent_admin_group = ["IT-ADMINS"]
+      node_rg           = "poc-AKS-rg"
+      dns_zone_enable   = true
+      dns_zone_name     = "privatelink.westeurope.azmk8s.io"
+      dns_zone_rg       = "it-npe-rg"
+      identity_enable   = true
+      identity_name     = "aks01-npe-umi"
+      identity_rg       = "IT-NPE-rg"
+
+      agent_nodes = [
+        { name = "applications", vm_size = "Standard_D4s_v4", node_count = 1, max_count = 5, min_count = 1, max_pods = 10 },
+      ]
+    },
+  ]
+
+}
+# Staging Web App 
+module "aks-test-npe" {
+  source                    = "../modules/aks"
+  for_each                  = { for aks in local.aks : aks.name => aks }
+  aks_name                  = each.key
+  aks_resource_group        = each.value.rg
+  aks_vnet_name             = each.value.vnet
+  aks_subnet_name           = each.value.subnet
+  aks_subnet_resource_group = each.value.subnet_rg
+  aks_agent_admin_group     = each.value.agent_admin_group
+  aks_node_resource_group   = each.value.node_rg
+
+  aks_dns_zone_enable = each.value.dns_zone_enable
+  aks_dns_zone_name   = each.value.dns_zone_name
+  aks_dns_zone_rg     = each.value.dns_zone_rg
+
+  aks_assigned_identity_enable = each.value.identity_enable
+  aks_assigned_identity_name   = each.value.identity_name
+  aks_assigned_identity_rg     = each.value.identity_rg
+
+  aks_agent_nodes = each.value.agent_nodes
+
+}

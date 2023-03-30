@@ -30,9 +30,9 @@ data "azurerm_backup_policy_vm" "backup_policy" {
   resource_group_name = var.backup_policy_rg
 }
 
-data "azurerm_log_analytics_workspace" "LogAnalyticsWorkspace" {
-  name                = var.loganalytics_workspace
-  resource_group_name = var.loganalytics_workspace_rg
+data "azurerm_log_analytics_workspace" "ECLogAnalyticsWorkspace" {
+  name                = "ECLogAnalyticsWorkspace"
+  resource_group_name = "prod_core"
 }
 
 resource "azurerm_network_interface" "nic" {
@@ -64,14 +64,14 @@ resource "azurerm_windows_virtual_machine" "vm" {
   #admin_username = var.secret_username
   #admin_password = var.secret_password
   license_type         = var.licence_hybrid_benefit ? "Windows_Server" : "None"
- 
+
   network_interface_ids = [
     azurerm_network_interface.nic.id,
   ]
 
   os_disk {
     caching              = "ReadWrite"
-    storage_account_type = "Premium_LRS"
+    storage_account_type = "Standard_LRS"
   }
 
   source_image_reference {
@@ -82,17 +82,13 @@ resource "azurerm_windows_virtual_machine" "vm" {
   }
 
   tags = {
-    EC_APPLICATION = var.tag_ec_application
-    EC_ENVIRONMENT = var.tag_ec_environment
+    APPLICATION = var.tag_application
+    ENVIRONMENT = var.tag_environment
   }
 
   lifecycle {
     prevent_destroy = true
   }
-
-  boot_diagnostics {
-  }
-
 }
 
 resource "azurerm_backup_protected_vm" "backup" {
@@ -115,12 +111,12 @@ resource "azurerm_virtual_machine_extension" "mmaagent" {
   auto_upgrade_minor_version = "true"
   settings                   = <<SETTINGS
     {
-      "workspaceId": "${data.azurerm_log_analytics_workspace.LogAnalyticsWorkspace.workspace_id}"
+      "workspaceId": "${data.azurerm_log_analytics_workspace.ECLogAnalyticsWorkspace.workspace_id}"
     }
 SETTINGS
   protected_settings         = <<PROTECTED_SETTINGS
    {
-      "workspaceKey": "${data.azurerm_log_analytics_workspace.LogAnalyticsWorkspace.primary_shared_key}"
+      "workspaceKey": "${data.azurerm_log_analytics_workspace.ECLogAnalyticsWorkspace.primary_shared_key}"
    }
 PROTECTED_SETTINGS
 }
@@ -138,57 +134,29 @@ resource "azurerm_managed_disk" "datadisk" {
   zones                = [azurerm_windows_virtual_machine.vm.zone]
 
   tags = {
-    EC_APPLICATION = var.tag_ec_application
-    EC_ENVIRONMENT = var.tag_ec_environment
+    APPLICATION = var.tag_application
+    ENVIRONMENT = var.tag_environment
   }
 
   depends_on = [azurerm_windows_virtual_machine.vm]
 }
 
 resource "azurerm_virtual_machine_data_disk_attachment" "datadiskattach" {
+  #count                = var.disks_quantity
   count           = length(var.disks)
   managed_disk_id = element(azurerm_managed_disk.datadisk.*.id, count.index)
+  #managed_disk_id    = azurerm_managed_disk.datadisk.id
   virtual_machine_id = azurerm_windows_virtual_machine.vm.id
   lun                = count.index
   caching            = "ReadOnly"
 
   depends_on = [azurerm_windows_virtual_machine.vm]
 }
-
-data "azurerm_storage_account" "diagsa" {
-  count               = var.vm_diag_enable ? 1 : 0
-  name                = var.vm_diag_sa
-  resource_group_name = var.vm_diag_sa_rg
-}
-
- # TODO : NE FAIT RIEN
-resource "azurerm_monitor_diagnostic_setting" "vmdiag" {
-  count               = var.vm_diag_enable ? 1 : 0
-  name               = "VMDiagnostics"
-  target_resource_id = azurerm_windows_virtual_machine.vm.id
-  storage_account_id = data.azurerm_storage_account.diagsa[0].id
 /*
-  log {
-    category = "AuditEvent"
-    enabled  = true
-
-    retention_policy {
-      enabled = true
-      days    = "30"
-    }
-  }
-*/
-  metric {
-  category = "AllMetrics"
-  enabled = true
-
-    retention_policy {
-      enabled = true
-      days    = "30"
-      }
-    }
+data "azurerm_subscription" "current_sub" {
 }
 
+*/
 resource "azurerm_virtual_machine_extension" "disk-encryption" {
   count                = var.disk_encryption ? 1 : 0
   name                 = "DiskEncryption"

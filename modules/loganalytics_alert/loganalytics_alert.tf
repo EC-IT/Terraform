@@ -24,6 +24,13 @@ resource "azurerm_monitor_scheduled_query_rules_alert" "alerts" {
     threshold = each.value.threshold
   }
   throttling  = var.throttling
+
+    lifecycle {
+    ignore_changes = [
+      enabled,
+    ]
+  }
+
 }
 
 resource "azurerm_monitor_action_group" "ecadmingroup" {
@@ -35,6 +42,12 @@ resource "azurerm_monitor_action_group" "ecadmingroup" {
   email_receiver {
     name          = each.value.email_name
     email_address = each.value.email_address
+  }
+  lifecycle {
+    ignore_changes = [
+      email_receiver["name"],
+      arm_role_receiver,
+    ]
   }
 }
 

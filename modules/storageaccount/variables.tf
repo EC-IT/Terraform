@@ -67,3 +67,20 @@ variable "pe_subresource" {
         error_message = "Valid values for pe_subresource are blob, file, queue and table."
   } 
 }
+/*
+variable "tag_ec_application" {
+    type        = string
+    validation {
+        condition     = length(var.tag_ec_application) > 0
+        error_message = "Tag EC_APPLICATION must be set."
+        }
+}
+
+variable "tag_ec_environment" {
+    type        = string
+    validation {
+        condition     = length(var.tag_ec_environment) > 2 && length(var.tag_ec_environment) < 12
+        error_message = "Tag EC_ENVIRONMENT must be \"DEV\", \"PPD\" or \"PROD\" ."
+        }
+}
+*/

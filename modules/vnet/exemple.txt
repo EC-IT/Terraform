@@ -1,0 +1,58 @@
+locals {
+  vnet_subnet = [
+    {
+      name              = "SubNet-Intranet-NPE"
+      cidr              = ["10.100.100.0/26"]
+      nsg               = "nsg_front_npe"
+      udr               = "UDR-H2C"
+      delegation        = ""
+    },
+    {
+      name              = "SubNet-Back-NPE"
+      cidr              = ["10.100.100.64/26"]
+      nsg               = "nsg_back_npe"
+      udr               = "UDR-H2C"
+      delegation        = ""
+    },
+    {
+      name              = "SubNet-Core-NPE"
+      cidr              = ["10.100.100.128/27"]
+      nsg               = "nsg_core_npe"
+      udr               = "UDR-H2C"
+      delegation        = ""
+    },
+    {
+      name              = "SubNet-ASE-NPE"
+      cidr              = ["10.100.100.192/26"]
+      nsg               = "nsg_ase_npe"
+      udr               = "UDR-H2C-ASE"
+      delegation        = "ase"      
+      },
+]
+}
+
+
+module "vnet" {
+  source              = "../modules/vnet"
+  vnet_name             = "VNet-Glb-NPE"
+  vnet_location         = data.azurerm_resource_group.itnperg.location
+  vnet_rg               = data.azurerm_resource_group.itnperg.name
+  vnet_address_space    = ["10.100.100.0/24"]
+  vnet_dns              = ["168.63.129.16","1.1.1.2"]
+ 
+  vnet_nsg              = local.vnet_nsgs
+  vnet_udr              = local.vnet_udrs
+  vnet_subnet           = local.vnet_subnet
+
+  vnet_nsg_logs_config         = local.vnet_nsg_logs_config
+  vnet_nsg_logs_enable         = local.vnet_nsg_logs_enable
+  
+  # DISABLE UDR LINK
+  link_udr = false
+
+  aztags = {
+    APPLICATION = "IT"
+    ENVIRONMENT = "PRE-PROD"
+  }
+
+}

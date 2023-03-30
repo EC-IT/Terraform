@@ -1,0 +1,223 @@
+
+
+locals {
+
+  policys = [
+    ########## SA_TLS_minimum ##########
+    { 
+        name= "SA_TLS_minimum", 
+        category="PROD", 
+        rule =<<POLICY_RULE
+    {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Storage/storageAccounts"
+          },
+          {
+            "not": {
+              "field": "Microsoft.Storage/storageAccounts/minimumTlsVersion",
+              "equals": "TLS1_2"
+            }
+          }
+        ]
+      },
+      "then": {
+        "effect": "deny"
+      }
+    }
+POLICY_RULE
+    },    
+    ########## SA_HTTPS_only ##########
+    { 
+        name= "SA_HTTPS_only", 
+        category="PROD", 
+        rule =<<POLICY_RULE
+    {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Storage/storageAccounts"
+          },
+          {
+            "not": {
+              "field": "Microsoft.Storage/storageAccounts/supportsHttpsTrafficOnly",
+              "equals": true
+            }
+          }
+        ]
+      },
+      "then": {
+        "effect": "deny"
+      }
+    }
+POLICY_RULE
+    },
+    ########## SA_BlobPublicAccess_disable ##########
+    { 
+        name= "SA_BlobPublicAccess_disable", 
+        category="PROD", 
+        rule =<<POLICY_RULE
+    {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Storage/storageAccounts"
+          },
+          {
+            "not": {
+              "field": "Microsoft.Storage/storageAccounts/allowBlobPublicAccess",
+              "equals": false
+            }
+          }
+        ]
+      },
+      "then": {
+        "effect": "deny"
+      }
+    }
+POLICY_RULE
+    }, 
+    ########## APP_TLS_minimum ##########
+    { 
+        name= "APP_TLS_minimum", 
+        category="PROD", 
+        rule =<<POLICY_RULE
+    {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Web/sites/config"
+          },
+          {
+            "not": {
+              "field": "Microsoft.Web/sites/config/minTlsVersion",
+              "equals": "1.2"
+            }
+          }
+        ]
+      },
+      "then": {
+        "effect": "deny"
+      }
+    }
+POLICY_RULE
+    }, 
+    ########## APP_HTTPS_only ##########
+    { 
+        name= "APP_HTTPS_only", 
+        category="PROD", 
+        rule =<<POLICY_RULE
+    {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Web/sites"
+          },
+          {
+            "not": {
+              "field": "Microsoft.Web/sites/httpsOnly",
+              "equals": true
+            }
+          }
+        ]
+      },
+      "then": {
+        "effect": "deny"
+      }
+    }
+POLICY_RULE
+    }, 
+    ########## SQL_TLS_minimum ##########
+    { 
+        name= "SQL_TLS_minimum", 
+        category="PROD", 
+        rule =<<POLICY_RULE
+    {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Sql/servers"
+          },
+          {
+            "not": {
+              "field": "Microsoft.Sql/servers/minimalTlsVersion",
+              "equals": "1.2"
+            }
+          }
+        ]
+      },
+      "then": {
+        "effect": "deny"
+      }
+    }
+POLICY_RULE
+    }, 
+    ########## PostgreSQL_TLS_minimum ##########
+    { 
+        name= "PostgreSQL_TLS_minimum", 
+        category="PROD", 
+        rule =<<POLICY_RULE
+    {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.DBforPostgreSQL/servers"
+          },
+          {
+            "not": {
+              "field": "Microsoft.DBforPostgreSQL/servers/minimalTlsVersion",
+              "equals": "TLS1_2"
+            }
+          }
+        ]
+      },
+      "then": {
+        "effect": "deny"
+      }
+    }
+POLICY_RULE
+    }, 
+    ########## PostgreSQL_SSL_enforce ##########
+    { 
+        name= "PostgreSQL_SSL_enforce", 
+        category="PROD", 
+        rule =<<POLICY_RULE
+    {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.DBforPostgreSQL/servers"
+          },
+          {
+            "not": {
+              "field": "Microsoft.DBforPostgreSQL/servers/sslEnforcement",
+              "equals": "Enabled"
+            }
+          }
+        ]
+      },
+      "then": {
+        "effect": "deny"
+      }
+    }
+POLICY_RULE
+    }, 
+  ]
+}
+
+module "NPE-POLICY" {
+  for_each = {for i, v in local.policys:  i => v}
+  source                 = "../modules/policy"
+  policy_name            = each.value.name
+  policy_category        = each.value.category
+  policy_rule            = each.value.rule
+}

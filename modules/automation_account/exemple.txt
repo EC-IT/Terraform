@@ -1,0 +1,63 @@
+locals {
+  runbooks = [
+    {
+      name           = "AutoStart_PreProd"
+      description    = "Demarre automatiquement les VM ENVIRONMENT PRE-PROD"
+      runbook_type   = "PowerShell"
+      file           = "noprod/PS/AutoStart_PreProd.ps1"
+      frequency      = "Day"
+      interval       = 1
+      time           = "07:00"
+      week_days      = []
+      month_days     = []
+    },
+    {
+      name           = "AutoStop_PreProd"
+      description    = "Arret des VM tags ENVIRONMENT PRE-PROD"
+      runbook_type   = "PowerShell"
+      file           = "noprod/PS/AutoStop_PreProd.ps1"
+      frequency      = "Day"
+      interval       = 1
+      time           = "23:00"
+      week_days      = []
+      month_days     = []
+    },
+    {
+      name           = "infra_lock_all_resources"
+      description    = "Lock azure resources"
+      runbook_type   = "PowerShell"
+      file           = "noprod/PS/lock_all_resources.ps1"
+      frequency      = "Month"
+      interval       = 1
+      time           = "06:00"
+      week_days      = []
+      month_days     = ["1"]
+    }
+  ]
+}
+
+resource "azurerm_log_analytics_workspace" "LogAnalyticsWorkspaceNPE" {
+  name                = "LogAnalyticsWorkspaceNPE"
+  location            = data.azurerm_resource_group.itnperg.location
+  resource_group_name = data.azurerm_resource_group.itnperg.name
+  #sku                 = "Standalone"
+  sku                 = "pergb2018"
+  retention_in_days   = 31
+  daily_quota_gb      = 4
+
+  tags                = local.aztags_it_preprod
+}
+
+module "AutomationNPE" {
+    source            = "../modules/automation_account"
+    automation_name   = "AutomationNPE"
+    automation_location = data.azurerm_resource_group.itnperg.location
+    automation_rg     = data.azurerm_resource_group.itnperg.name
+    automation_workspace_id = azurerm_log_analytics_workspace.LogAnalyticsWorkspaceNPE.id
+    runbooks = local.runbooks
+    enable_update_management = true
+
+    create_job_schedule = false
+
+    aztags            = local.aztags_it_preprod
+}
